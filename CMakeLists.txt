@@ -133,15 +133,16 @@ target_compile_options(cpp_ext PUBLIC "-DEXTENSION_NAME=pyxcp.cpp_ext.cpp_ext")
 target_compile_options(stim PUBLIC "-DEXTENSION_NAME=pyxcp.daq_stim.stim")
 target_compile_options(transport_ext PUBLIC "-DEXTENSION_NAME=pyxcp.transport.transport_ext")
 
-configure_python_extension(rekorder pyxcp/recorder)
-configure_python_extension(cpp_ext pyxcp/cpp_ext)
-configure_python_extension(stim pyxcp/daq_stim)
-configure_python_extension(transport_ext pyxcp/transport)
-
 add_executable(asamkeydll ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/asamkeydll.c)
 if (CMAKE_SYSTEM_NAME STREQUAL  "Linux")
 	target_link_libraries(asamkeydll PRIVATE dl)
 endif()
+
+configure_python_extension(rekorder pyxcp/recorder)
+configure_python_extension(cpp_ext pyxcp/cpp_ext)
+configure_python_extension(stim pyxcp/daq_stim)
+configure_python_extension(transport_ext pyxcp/transport)
+configure_python_extension(asamkeydll pyxcp/cpp_ext)
 
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -169,4 +170,4 @@ install_python_extension(rekorder pyxcp/recorder)
 install_python_extension(cpp_ext pyxcp/cpp_ext)
 install_python_extension(stim pyxcp/daq_stim)
 install_python_extension(transport_ext pyxcp/transport)
-install(TARGETS asamkeydll RUNTIME DESTINATION pyxcp)
+install_python_extension(asamkeydll pyxcp/cpp_ext)
