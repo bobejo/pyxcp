@@ -38,8 +38,11 @@ def create_config():
             self.seed_n_key_dll = None
             self.seed_n_key_function = None
             self.seed_n_key_dll_same_bit_width = False
+            self.checksum_dll = None
+            self.checksum_dll_same_bit_width = False
             self.disconnect_response_optional = False
             self.connect_retries = 0  # Disable connect retries for testing
+            self.custom_dll_loader = None
 
     class TransportConfig:
         def __init__(self):
