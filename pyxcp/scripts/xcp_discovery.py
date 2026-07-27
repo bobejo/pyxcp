@@ -18,7 +18,7 @@ import logging
 import socket
 import struct
 import time
-from typing import Container, Iterable, Optional, Tuple
+from collections.abc import Container, Iterable
 
 from pyxcp.transport.eth import (
     DEFAULT_XCP_DISCOVERY_ADDRESS,
@@ -58,9 +58,9 @@ class XcpEthDiscovery:
         self,
         payload: bytes,
         parser,
-        expected_subcommand: Optional[int] = None,
+        expected_subcommand: int | None = None,
         framing: bool = True,
-    ) -> Optional[Container]:
+    ) -> Container | None:
         if framing:
             if not payload:
                 return None
@@ -78,7 +78,7 @@ class XcpEthDiscovery:
             logger.debug("Failed to parse positive transport layer response", exc_info=True)
             return None
 
-    def _parse_negative_payload(self, payload: bytes, expected_subcommand: int) -> Optional[Container]:
+    def _parse_negative_payload(self, payload: bytes, expected_subcommand: int) -> Container | None:
         if not payload or payload[0] != 0xFE:
             return None
         body = payload[1:]
@@ -166,7 +166,7 @@ class XcpEthDiscovery:
                     sock.settimeout(remaining)
                     try:
                         data, addr = sock.recvfrom(MAX_DATAGRAM_SIZE)
-                    except socket.timeout:
+                    except TimeoutError:
                         break
                     parsed = self._unpack_header_and_payload(data)
                     if not parsed:
@@ -356,7 +356,7 @@ def parse_mac(text: str) -> bytes:
         raise argparse.ArgumentTypeError("MAC must contain 6 octets (e.g. AA:BB:CC:DD:EE:FF)")
     try:
         return bytes(int(part, 16) for part in parts)
-    except ValueError as exc:  # noqa: B904
+    except ValueError as exc:
         raise argparse.ArgumentTypeError(f"Invalid MAC segment in {text!r}") from exc
 
 
@@ -365,7 +365,7 @@ def format_ip(ip_bytes: bytes) -> str:
 
 
 def format_resource(resource) -> str:
-    flags: Iterable[Tuple[str, bool]] = (
+    flags: Iterable[tuple[str, bool]] = (
         ("DBG", resource.dbg),
         ("PGM", resource.pgm),
         ("STIM", resource.stim),

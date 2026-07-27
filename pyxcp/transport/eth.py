@@ -4,9 +4,8 @@ import socket
 import struct
 import threading
 from collections import deque
-from typing import Optional
 
-import pyxcp.types as types
+from pyxcp import types
 from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
 from pyxcp.transport.transport_ext import EthReceiver
 
@@ -51,7 +50,7 @@ class Eth(BaseTransport):
     MAX_DATAGRAM_SIZE = 512
     HEADER = struct.Struct("<HH")
 
-    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
+    def __init__(self, config=None, policy=None, transport_layer_interface: socket.socket | None = None) -> None:
         self.load_config(config)
         framing_config = XcpFramingConfig(
             transport_layer_type=XcpTransportLayerType.ETH,
@@ -132,7 +131,7 @@ class Eth(BaseTransport):
         self._eth_receiver = EthReceiver(self.process_response)
 
         # XCP 1.5: Multicast socket for GET_DAQ_CLOCK_MULTICAST
-        self._multicast_sock: Optional[socket.socket] = None
+        self._multicast_sock: socket.socket | None = None
         self._multicast_enabled = False
 
     def connect(self) -> None:
@@ -255,7 +254,7 @@ class Eth(BaseTransport):
                 self.logger.exception("Unexpected Ethernet packet listener failure")
                 break
 
-    def _extract_linux_timestamp(self, ancdata) -> Optional[int]:
+    def _extract_linux_timestamp(self, ancdata) -> int | None:
         # SO_TIMESTAMPING returns a struct scm_timestamping
         # which contains 3 timespecs: software, transformed, hardware.
         # We want the hardware one (index 2) if available, otherwise software (index 0).
