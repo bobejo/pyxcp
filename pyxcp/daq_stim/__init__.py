@@ -55,11 +55,11 @@ def event_channel_cycle_to_ns(cycle: int, unit: int) -> int:
     return max(1, (value.numerator + value.denominator - 1) // value.denominator) if value else 0
 
 
-def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
+def load_daq_lists_from_json(config: list[dict]) -> list[DaqList]:
     if not isinstance(config, list):
         raise ValueError("DAQ configuration must be a JSON array (list)")
 
-    daq_lists: List[DaqList] = []
+    daq_lists: list[DaqList] = []
     for idx, entry in enumerate(config):
         if not isinstance(entry, dict):
             raise TypeError(f"Entry {idx} must be an object/dict")
@@ -92,7 +92,7 @@ def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
         if not isinstance(measurements_raw, list):
             raise TypeError(f"Entry {idx} 'measurements' must be a list")
 
-        measurements: List[Tuple[str, int, int, str]] = []
+        measurements: list[tuple[str, int, int, str]] = []
         for m_idx, m in enumerate(measurements_raw):
             if not (isinstance(m, (list, tuple)) and len(m) == 4):
                 raise ValueError(f"Entry {idx} measurement {m_idx} must be a 4-element list/tuple")
@@ -113,7 +113,7 @@ def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
 
             measurements.append((m_name, m_addr, m_addr_ext, m_type))
 
-        daq_kwargs: Dict[str, Any] = {
+        daq_kwargs: dict[str, Any] = {
             "name": name,
             "event_num": event_num,
             "stim": stim,
@@ -129,7 +129,7 @@ def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
 
 
 class DaqProcessor:
-    def __init__(self, daq_lists: List[Union[DaqList, PredefinedDaqList]], logger: Optional[logging.Logger] = None):
+    def __init__(self, daq_lists: list[DaqList | PredefinedDaqList], logger: logging.Logger | None = None):
         """Initialize DAQ Processor.
 
         Parameters
@@ -170,9 +170,9 @@ class DaqProcessor:
 
     def setup(
         self,
-        start_datetime: Optional[CurrentDatetime] = None,
+        start_datetime: CurrentDatetime | None = None,
         write_multiple: bool = True,
-        daq_info_override: Optional[Dict[str, Any]] = None,
+        daq_info_override: dict[str, Any] | None = None,
     ):
         if not self.xcp_master.slaveProperties.supportsDaq:
             raise RuntimeError("DAQ functionality is not supported.")
@@ -437,11 +437,11 @@ class DaqProcessor:
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
     def __init__(
         self,
-        daq_lists: List[DaqList],
+        daq_lists: list[DaqList],
         file_name: str,
         prealloc: int = 200,
         chunk_size: int = 1,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """Initialize DAQ Recorder.
 
@@ -481,7 +481,7 @@ class DaqOnlinePolicy(DaqProcessor, _DaqOnlinePolicy):
     Handles multiple inheritence.
     """
 
-    def __init__(self, daq_lists: List[DaqList], logger: Optional[logging.Logger] = None):
+    def __init__(self, daq_lists: list[DaqList], logger: logging.Logger | None = None):
         """Initialize DAQ Online Policy.
 
         Parameters
@@ -505,7 +505,7 @@ class DaqToCsv(DaqOnlinePolicy):
         self.log.debug("DaqCsv::Initialize()")
         if hasattr(self, "files"):
             self.finalize()
-        self.files: Dict[int, TextIO] = {}
+        self.files: dict[int, TextIO] = {}
         for num, daq_list in enumerate(self.daq_lists):
             if daq_list.stim:
                 continue

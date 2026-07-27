@@ -13,7 +13,8 @@ import struct
 import traceback
 import warnings
 from contextlib import suppress
-from typing import Any, Callable, Collection, Optional, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable, Collection
 
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 
@@ -183,7 +184,7 @@ class Master:
         # Policies may issue XCP commands on their own.
         self.transport.policy.xcp_master = self
 
-        self.time_correlation_properties: Optional[TimeCorrelationPropertiesResponse] = None
+        self.time_correlation_properties: TimeCorrelationPropertiesResponse | None = None
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
@@ -787,7 +788,7 @@ class Master:
 
         # Check if the requested byte count exceeds the maximum
         if byte_count > max_byte_count:
-            self.logger.warn(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
+            self.logger.warning(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
 
         # Send SHORT_UPLOAD command to the slave
         response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, address_ext, *addr)

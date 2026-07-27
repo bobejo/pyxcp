@@ -6,7 +6,7 @@ import operator
 from abc import ABC, abstractmethod
 from bisect import bisect_left
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from can import (
     BusState,
@@ -50,7 +50,7 @@ class SoftwareFilter:
         self.filters = None
         self.reject_all()
 
-    def set_filters(self, filters: List[Dict]) -> None:
+    def set_filters(self, filters: list[dict]) -> None:
         self.filters = filters
         self.filtering()
 
@@ -88,8 +88,6 @@ class SoftwareFilter:
 
 class IdentifierOutOfRangeError(Exception):
     """Signals an identifier greater then :obj:`MAX_11_BIT_IDENTIFIER` or :obj:`MAX_29_BIT_IDENTIFIER`."""
-
-    pass
 
 
 def is_extended_identifier(identifier: int) -> bool:
@@ -251,7 +249,7 @@ class Identifier:
         """
         return Identifier(identifier if not extended else (identifier | CAN_EXTENDED_ID))
 
-    def create_filter_from_id(self) -> Dict:
+    def create_filter_from_id(self) -> dict:
         """Create a single CAN filter entry.
         s. https://python-can.readthedocs.io/en/stable/bus.html#filtering
         """
@@ -354,7 +352,7 @@ class PythonCanWrapper:
         self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
         self.connected = True
 
-    def update_daq_filters(self, daq_identifiers: List) -> None:
+    def update_daq_filters(self, daq_identifiers: list) -> None:
         """Update CAN filters to include DAQ identifiers.
 
         This method should be called after DAQ configuration when DAQ IDs become known.
@@ -409,7 +407,7 @@ class PythonCanWrapper:
         )
         self.can_interface.send(frame)
 
-    def read(self) -> Optional[Frame]:
+    def read(self) -> Frame | None:
         if not self.connected:
             return None
         try:
@@ -451,7 +449,7 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
+    def __init__(self, config, policy=None, transport_layer_interface: BusABC | None = None):
         framing_config = XcpFramingConfig(
             transport_layer_type=XcpTransportLayerType.CAN,
             header_len=0,
@@ -514,7 +512,7 @@ class Can(BaseTransport):
             f"Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"
         )
 
-    def get_interface_parameters(self) -> Dict[str, Any]:
+    def get_interface_parameters(self) -> dict[str, Any]:
         result = dict(channel=self.config.channel)
 
         # Fall back to CanCustom for any third-party interface not in CAN_INTERFACE_MAP.
@@ -685,7 +683,7 @@ class CanInterfaceBase(ABC):
     """
 
     @abstractmethod
-    def set_filters(self, filters: Optional[List[Dict[str, Union[int, bool]]]] = None) -> None:
+    def set_filters(self, filters: list[dict[str, int | bool]] | None = None) -> None:
         """Apply filtering to all messages received by this Bus.
 
         filters:
@@ -694,7 +692,7 @@ class CanInterfaceBase(ABC):
         """
 
     @abstractmethod
-    def recv(self, timeout: Optional[float] = None) -> Optional[Message]:
+    def recv(self, timeout: float | None = None) -> Message | None:
         """Block waiting for a message from the Bus."""
 
     @abstractmethod
@@ -703,7 +701,7 @@ class CanInterfaceBase(ABC):
 
     @property
     @abstractmethod
-    def filters(self) -> Optional[List[Dict[str, Union[int, bool]]]]:
+    def filters(self) -> list[dict[str, int | bool]] | None:
         """Modify the filters of this bus."""
 
     @property

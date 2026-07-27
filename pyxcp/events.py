@@ -7,7 +7,7 @@ with special focus on EV_TIME_SYNC (XCP 1.5 advanced time correlation).
 
 import enum
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Optional, TYPE_CHECKING
+from typing import NamedTuple, TYPE_CHECKING
 import struct
 import logging
 
@@ -100,13 +100,13 @@ class TimeSyncEvent(NamedTuple):
 
     is_legacy: bool
     trigger_info: TriggerInfo
-    payload_fmt: Optional[PayloadFormat]
-    counter: Optional[int]  # For GET_DAQ_CLOCK_MULTICAST responses
-    xcp_slave_timestamp: Optional[int]
-    grandmaster_timestamp: Optional[int]
-    ecu_timestamp: Optional[int]
-    cluster_id: Optional[int]
-    sync_state: Optional[int]
+    payload_fmt: PayloadFormat | None
+    counter: int | None  # For GET_DAQ_CLOCK_MULTICAST responses
+    xcp_slave_timestamp: int | None
+    grandmaster_timestamp: int | None
+    ecu_timestamp: int | None
+    cluster_id: int | None
+    sync_state: int | None
 
     @classmethod
     def parse(cls, packet: bytes, max_cto: int = 255, byte_order: str = "little") -> "TimeSyncEvent":
@@ -178,7 +178,7 @@ class TimeSyncEvent(NamedTuple):
         sync_state = None
 
         # Helper to read DWORD or DLONG
-        def read_timestamp(fmt: ClockFormat) -> Optional[int]:
+        def read_timestamp(fmt: ClockFormat) -> int | None:
             nonlocal offset
             if fmt == ClockFormat.NOT_PRESENT:
                 return None
@@ -262,7 +262,7 @@ class EventHandler(ABC):
     def __init__(self, transport: "BaseTransport"):
         self.transport = transport
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._next_handler: Optional[EventHandler] = None
+        self._next_handler: EventHandler | None = None
 
     def set_next(self, handler: "EventHandler") -> "EventHandler":
         """Chain handlers together. Returns the handler for chaining."""
@@ -272,7 +272,6 @@ class EventHandler(ABC):
     @abstractmethod
     def can_handle(self, event_code: int, packet: bytes) -> bool:
         """Check if this handler can process the event."""
-        pass
 
     @abstractmethod
     def handle(self, event_code: int, packet: bytes) -> bool:
@@ -283,7 +282,6 @@ class EventHandler(ABC):
             True if event was fully handled (stop chain)
             False to continue to next handler
         """
-        pass
 
     def process(self, event_code: int, packet: bytes) -> bool:
         """Process event through the chain. Returns True if handled."""
@@ -345,14 +343,14 @@ class TimeSyncEventHandler(EventHandler):
 
     def __init__(self, transport: "BaseTransport"):
         super().__init__(transport)
-        self.last_sync_event: Optional[TimeSyncEvent] = None
+        self.last_sync_event: TimeSyncEvent | None = None
 
     def can_handle(self, event_code: int, packet: bytes) -> bool:
         from pyxcp.types import Event
 
         return event_code == Event.EV_TIME_SYNC
 
-    def get_last_sync_event(self) -> Optional[TimeSyncEvent]:
+    def get_last_sync_event(self) -> TimeSyncEvent | None:
         return self.last_sync_event
 
     def _parse_options(self) -> tuple[int, str]:
