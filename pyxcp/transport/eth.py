@@ -246,9 +246,10 @@ class Eth(BaseTransport):
                 self.status = 0  # disconnected
                 if close_event_set() or socket_fileno() == -1:
                     self.logger.debug("Ethernet packet listener stopped during socket shutdown: %s", ex)
+                    break
                 else:
                     self.logger.exception("Ethernet packet listener socket failure")
-                break
+                    continue
             except Exception:
                 self.status = 0  # disconnected
                 self.logger.exception("Unexpected Ethernet packet listener failure")
