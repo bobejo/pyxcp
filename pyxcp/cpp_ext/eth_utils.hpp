@@ -53,6 +53,47 @@ struct TimestampingInfo {
 
 #if defined(_WIN32)
 
+struct Module {
+    HMODULE handle{};
+    Module(const char* name) { handle = LoadLibraryExA(name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32); }
+    ~Module() {
+        if (handle) {
+            FreeLibrary(handle);
+        }
+    }
+};
+
+template<typename Func>
+Func const * const load_dll_function(const Module& module, const char* funcName)
+{
+    using FuncPtr = Func*;
+
+	if (!module.handle)
+	{
+        return {};
+	}
+
+
+    auto addr = GetProcAddress(module.handle, funcName);
+    if (!addr)
+    {
+        return {};
+    }
+
+    return reinterpret_cast<FuncPtr>(addr);
+}
+
+
+static Module iphlpapiModule("iphlpapi.dll");
+
+using Get_Ts_Caps_Signature = DWORD(WINAPI*)(const NET_LUID*, PINTERFACE_TIMESTAMP_CAPABILITIES);
+
+static const auto get_interface_supported_timestamp_capabilities = load_dll_function<Get_Ts_Caps_Signature>(
+    iphlpapiModule,
+    "GetInterfaceSupportedTimestampCapabilities"
+);
+
+
 void init_networking() {
   WSADATA wsa;
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
@@ -225,13 +266,17 @@ TimestampingInfo check_timestamping_support(const std::string &host_name) {
     TimestampingInfo result {"", false, false, false};
     INTERFACE_TIMESTAMP_CAPABILITIES caps;
 
+    if (!get_interface_supported_timestamp_capabilities) {
+        return result;
+    }
+
     auto host_route = get_best_route(host_name);
     if (!host_route.has_value()) {
         return result;
     }
     auto hvr = *host_route;
     result.interface_name = host_route->name;
-    if (GetInterfaceSupportedTimestampCapabilities(&hvr.luid, &caps) == NO_ERROR) {
+    if ((*get_interface_supported_timestamp_capabilities)(&hvr.luid, &caps) == NO_ERROR) {
         result.timestamping_supported = hw_timestamping_on_ipv4(&caps) || hw_timestamping_on_ipv6(&caps);
     } else {
 
