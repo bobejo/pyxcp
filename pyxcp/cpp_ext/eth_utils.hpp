@@ -84,21 +84,31 @@ Func const * const load_dll_function(const Module& module, const char* funcName)
 }
 
 
-static Module iphlpapiModule("iphlpapi.dll");
+typedef DWORD(*Get_Ts_Caps_Signature)(const NET_LUID*, PINTERFACE_TIMESTAMP_CAPABILITIES);
 
-using Get_Ts_Caps_Signature = DWORD(WINAPI*)(const NET_LUID*, PINTERFACE_TIMESTAMP_CAPABILITIES);
+#if 0
+//using Get_Ts_Caps_Signature = DWORD(*)(const NET_LUID*, PINTERFACE_TIMESTAMP_CAPABILITIES);
+static Module * iphlpapiModule = nullptr; //("iphlpapi.dll");
 
-static const auto get_interface_supported_timestamp_capabilities = load_dll_function<Get_Ts_Caps_Signature>(
+static const Get_Ts_Caps_Signature * get_interface_supported_timestamp_capabilities = load_dll_function<Get_Ts_Caps_Signature>(
     iphlpapiModule,
     "GetInterfaceSupportedTimestampCapabilities"
 );
+#endif
+
+static Get_Ts_Caps_Signature * get_interface_supported_timestamp_capabilities = nullptr;
 
 
 void init_networking() {
-  WSADATA wsa;
-  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-    printf("WSAStartup failed\n");
-  }
+    WSADATA wsa;
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        printf("WSAStartup failed\n");
+    }
+    HMODULE handle = LoadLibraryExA("iphlpapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (handle) {
+        get_interface_supported_timestamp_capabilities = (Get_Ts_Caps_Signature *)GetProcAddress(iphlpapiModule->handle, "GetInterfaceSupportedTimestampCapabilities");
+    }
 }
 
 static std::string wstring_to_utf8(const std::wstring& wstr) {
@@ -221,6 +231,7 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
       std::wstring wstr(pCurrAddresses->FriendlyName);
       info.name = std::string(wstr.begin(), wstr.end());
       info.luid = pCurrAddresses->Luid;
+      //CopyMemory(&info.luid, &pCurrAddresses->Luid, sizeof(NET_LUID));
       free(pAddresses);
       return info;
     }
@@ -270,16 +281,23 @@ TimestampingInfo check_timestamping_support(const std::string &host_name) {
         return result;
     }
 
-    auto host_route = get_best_route(host_name);
+    const std::optional<InterfaceInfo> host_route = get_best_route(host_name);
     if (!host_route.has_value()) {
+        std::cout << "No route found for host: " << host_name << std::endl;
         return result;
     }
-    auto hvr = *host_route;
+    std::cout << "Found route for host: " << host_name << ", interface: " << host_route->name << std::endl;
+    const auto luid = host_route->luid;
     result.interface_name = host_route->name;
-    if ((*get_interface_supported_timestamp_capabilities)(&hvr.luid, &caps) == NO_ERROR) {
-        result.timestamping_supported = hw_timestamping_on_ipv4(&caps) || hw_timestamping_on_ipv6(&caps);
-    } else {
-
+    //if (GetInterfaceSupportedTimestampCapabilities(&luid, &caps) == NO_ERROR) {
+    try {
+        if ((*get_interface_supported_timestamp_capabilities)(&luid, &caps) == NO_ERROR) {
+            result.timestamping_supported = hw_timestamping_on_ipv4(&caps) || hw_timestamping_on_ipv6(&caps);
+        } else {
+            std::cout << "GetInterfaceSupportedTimestampCapabilities failed." << std::endl;
+        }
+    } catch (const std::runtime_error &e) {
+        std::cout << "Exception occurred while calling GetInterfaceSupportedTimestampCapabilities: " << e.what() << std::endl;
     }
     return result;
 }
