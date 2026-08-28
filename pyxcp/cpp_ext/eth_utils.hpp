@@ -107,7 +107,7 @@ void init_networking() {
     }
     HMODULE handle = LoadLibraryExA("iphlpapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (handle) {
-        get_interface_supported_timestamp_capabilities = (Get_Ts_Caps_Signature *)GetProcAddress(iphlpapiModule->handle, "GetInterfaceSupportedTimestampCapabilities");
+        get_interface_supported_timestamp_capabilities = (Get_Ts_Caps_Signature *)GetProcAddress(handle, "GetInterfaceSupportedTimestampCapabilities");
     }
 }
 
